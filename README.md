@@ -2,7 +2,7 @@
 Project work done for the course Intelligent Interactive Systems @ Uppsala University for VT2023
 
 Directory sructure: 
-'''bash
+```bash
 |
 ├───data
 │   └───DiffusionFER
@@ -25,4 +25,4 @@ Directory sructure:
 │               └───surprise
 ├───scratch
 └───scripts
-'''
+```
