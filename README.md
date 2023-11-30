@@ -3,7 +3,7 @@ Project work done for the course Intelligent Interactive Systems @ Uppsala Unive
 
 Directory sructure: 
 ```bash
-|
+
 ├───data
 │   └───DiffusionFER
 │       └───DiffusionEmotion_S
