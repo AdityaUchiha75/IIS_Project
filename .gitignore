@@ -1,12 +1,9 @@
 #folder
-Task2_1/utils_backup.py
-Data
-Scratch
-Task2_1/Data
-UCAN-PET-CT-image-data-handling-pipeline-main/
+data
 
 #file types
 
+*.zip
 *.csv
 *.docx
 *.xlsx
