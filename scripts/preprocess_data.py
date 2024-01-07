@@ -22,7 +22,6 @@ def main():
     # -----------------READING IMAGES FROM DISK-----------------#
 
     # Some steps to fix the paths for saving the csv and images
-    path = Path(os.getcwd()).parent
     DIR_PATH = str(Path(__file__).parent.parent.absolute()) + r"\\"
 
     emo_folders = Path(DIR_PATH + 'data/DiffusionFER/DiffusionEmotion_S/cropped').glob('*')

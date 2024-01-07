@@ -19,12 +19,6 @@ import os
 from torch import nn
 import torch
 
-
-
-# DETECTOR SETUP -------------------------------------------------------------
-
-detector = Detector(device="cuda")
-
 class MLP(nn.Module):
     def __init__(self, features_in=2, features_out=3):
         super().__init__()
@@ -37,12 +31,6 @@ class MLP(nn.Module):
 
     def forward(self, input):
         return self.net(input)
-    
-path = Path(os.getcwd()).parent
-DIR_PATH = str(Path(__file__).parent.parent.absolute()) + r"\\"
-
-device = "cuda" if torch.cuda.is_available() else "cpu"
-model = torch.load(Path(DIR_PATH + 'models\\best_model_12.pt') ).to(device)
 
 expression = {"anger": 6, "disgust": 5 , "fear": 4, "happiness": 1, "neutral": 0, "sadness": 2, "surprise": 3}
 def return_emo(loc):
@@ -52,13 +40,14 @@ def return_emo(loc):
         
 EMO_LIST= []
 
-def capture_and_return_emos():
+def capture_and_return_emos(detector,t):
+    fl = False
+    start= time.time()
     cap = cv2.VideoCapture(1)
     print("Capture on")
     flag=True
     while flag: #or not event.is_set()
         ret, frame = cap.read()
-
         if not ret:
             print("Error: Unable to capture the frame.")
             break
@@ -80,28 +69,56 @@ def capture_and_return_emos():
                 # Displaying the emotion label on top of the rectangle
                 cv2.putText(frame, emotion, (int(x), int(y) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
 
-                # Displaying the frame with detected faces and emotions
-                jcv2.imshow("Emotion Detection", frame)
-
-                # Press Esc to exit the program
-                key = jcv2.waitKey(1) or 0xFF
-
+                stop = time.time()
                 # if event.is_set():
                 #     flag=False
                 #     break
-                if key == 27:
+                if stop - start >= t:
+                    print(fl)
+                    fl = True
                     flag=False
-                    break
+                    break                                   
+                 #key == 27:
+
+    # jcv2.destroyAllWindows()
     cap.release()
-    jcv2.destroyAllWindows()
     print("Capture off")
 
-def main():
-    process1 = multiprocessing.Process(target=capture_and_return_emos())
-    process1.start()
-    time.sleep(5)
-    process1.terminate()
-    process1.kill()
+def bsay(furhat, line):
+    furhat.say(text=line, blocking=True)
+    sleep(3)
 
-if __name__=="__main__":
-    main()
+
+if __name__ == '__main__':
+    print("Init setup...")
+    start= time.time()
+    # Furhat setup --------------------------------------------------------------
+
+    FURHAT_IP = "127.0.1.1"
+
+    furhat = FurhatRemoteAPI(FURHAT_IP)
+
+    # DETECTOR SETUP -------------------------------------------------------------
+            
+    path = Path(os.getcwd()).parent
+    DIR_PATH = str(Path(__file__).parent.parent.absolute()) + r"\\"
+
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = torch.load(Path(DIR_PATH + 'models\\best_model_12.pt') ).to(device)
+    detector = Detector(device="cuda")
+
+    end = time.time()
+
+    print(f"Setup over, time taken: {end-start}")
+
+    multiprocessing.freeze_support()
+    process1 = multiprocessing.Process(target=bsay(furhat, "Hello everybody!!") )
+    process1.start()
+    process2 = multiprocessing.Process(target=capture_and_return_emos(detector, 6)) #, daemon=False
+    process2.start()
+    process1.join()
+    process2.join()
+    process1.terminate()
+    process2.terminate()
+    
+
