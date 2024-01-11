@@ -40,7 +40,7 @@ def return_emo(loc):
         
 EMO_LIST= []
 
-def capture_and_return_emos(detector,t):
+def capture_and_return_emos(detector, model, t):
     fl = False
     start= time.time()
     cap = cv2.VideoCapture(1)
@@ -58,7 +58,7 @@ def capture_and_return_emos(detector,t):
 
         for faces,au_units in zip(detected_faces,detected_aus): #access only one frame
             for i in range(len(faces)): #access all faces detected in the frame
-                au_arr=model(torch.tensor(au_units[i]).to(device)).cpu()
+                au_arr=model(torch.tensor(au_units[i])).cpu()
                 max_loc=np.argmax(au_arr.softmax(dim=0).numpy())
                 emotion=return_emo(max_loc)
                 EMO_LIST.append(emotion)
@@ -85,6 +85,7 @@ def capture_and_return_emos(detector,t):
     print("Capture off")
 
 def bsay(furhat, line):
+    sleep(3)
     furhat.say(text=line, blocking=True)
     sleep(3)
 
@@ -103,7 +104,7 @@ if __name__ == '__main__':
     path = Path(os.getcwd()).parent
     DIR_PATH = str(Path(__file__).parent.parent.absolute()) + r"\\"
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cuda" #"cuda" if torch.cuda.is_available() else
     model = torch.load(Path(DIR_PATH + 'models\\best_model_12.pt') ).to(device)
     detector = Detector(device="cuda")
 
@@ -111,10 +112,11 @@ if __name__ == '__main__':
 
     print(f"Setup over, time taken: {end-start}")
 
-    multiprocessing.freeze_support()
-    process1 = multiprocessing.Process(target=bsay(furhat, "Hello everybody!!") )
+    #multiprocessing.freeze_support()
+    process1 = multiprocessing.Process(target=capture_and_return_emos, args = (detector, model, 6) )
+    process2 = multiprocessing.Process(target=bsay(furhat, "Hello everybody!!")) #, daemon=False
+
     process1.start()
-    process2 = multiprocessing.Process(target=capture_and_return_emos(detector, 6)) #, daemon=False
     process2.start()
     process1.join()
     process2.join()

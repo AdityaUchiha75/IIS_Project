@@ -4,17 +4,23 @@ from feat import Detector
 from feat.utils import FEAT_EMOTION_COLUMNS
 import time
 from numpy.random import randint
-import time
+from time import sleep
 import torch
+#import tensorflow as tf
 import multiprocessing
+from pathlib import Path
+import os
+import sys
+
+parent_dir = os.path.abspath('../IIS/IIS_Project/')
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
 
 from furhat_remote_api import FurhatRemoteAPI
 import time
 import pygame
-from furhat.excercises import visualizationExercise
-from furhat.furhatConfig import furhatConfig
-from furhat.furhatConfig import LOOK_DOWN, LOOK_BACK
-from utils import best_emo_model, return_emo, visualizationResponse
+from furhat.furhatConfig import furhatConfig, LOOK_DOWN, LOOK_BACK
+from utils import best_emo_model, return_emo, MLP
 # Create an instance of the FurhatRemoteAPI class, providing the address of the robot or the SDK running the virtual robot
 furhat = FurhatRemoteAPI("localhost")
 furhat.set_led(red=100, green=50, blue=50)
@@ -28,25 +34,31 @@ detector = Detector(device="cuda")
 
 # ----- Initializing model -----
 EMO_LIST = []
-device = "cuda" if torch.cuda.is_available() else "cpu"
-model = best_emo_model('models\\best_model_12.pt').to(device)
+DIR_PATH = str(Path(__file__).parent.parent.absolute()) + r"\\"
 
-def return_detected_emo():
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model = best_emo_model(DIR_PATH + 'models\\Emo\\best_model_12.pt').to(device)
+# model_path = Path(str(path) + '/models/model_larger_architecture.h5')
+# model = tf.keras.models.load_model(model_path)
+
+def return_detected_emo(emo_list):
     max=0
-    for i in np.unique(EMO_LIST):
-        print(i, np.char.count(EMO_LIST, i).sum())
-        if np.char.count(EMO_LIST, i).sum() > max:
-            max = np.char.count(EMO_LIST, i).sum()
+    for i in np.unique(emo_list):
+        if np.char.count(emo_list, i).sum() > max:
+            max = np.char.count(emo_list, i).sum()
             emo = i
-    {"anger": 6, "disgust": 5 , "fear": 4, "happiness": 1, "neutral": 0, "sadness": 2, "surprise": 3}
+
     if emo == 'anger' or emo == 'disgust':
-        return 'angry'
+        return 'disturbed'
+    
     elif emo== 'happiness' or emo == 'surprise':
-        return 'happy'
+        return 'energetic and positive'
+    
     elif emo == 'fear' or emo == 'sadness':
-        return 'sad'
+        return 'depressed'
+    
     elif emo == 'neutral':
-        return emo
+        return 'stoic'
     else:
         return 'calm'
 
@@ -82,6 +94,105 @@ def capture_and_return_emos(detector, model, device, t):
 
     cap.release()
     print("Capture off")
+    return True
+
+# ------- Furhat ----------
+
+def say_with_delay(furhat, tex_t, t):
+    furhat.say(text=tex_t, blocking=True)
+    sleep(t)
+
+def visualizationExercise(furhat):
+
+    # Visualization Exercise (1 minute)
+    say_with_delay(furhat, "Now, let's enter a moment of visualization. Please close your eyes!", 1)
+    
+    flag = capture_and_return_emos(detector, model, device,10)
+    
+    say_with_delay(furhat, "Picture a serene place in your mind. It could be a beach, a forest, or any place that brings you peace.", 1)
+    
+    flag = capture_and_return_emos(detector, model, device,10)
+
+    say_with_delay(furhat, "Imagine the sights, sounds, and smells of this tranquil setting.", 1)
+    
+    flag = capture_and_return_emos(detector, model, device,10)
+    
+    init_emo = EMO_LIST.copy()
+    EMO_LIST.clear()
+
+    say_with_delay(furhat, "With each breath, feel yourself absorbing the calm and positive energy from this place.", 1)
+    
+    flag = capture_and_return_emos(detector, model, device,10)
+    
+    say_with_delay(furhat, "Let the peaceful energy wash over you, soothing your body and mind.", 1)
+    
+    flag = capture_and_return_emos(detector, model, device,10)
+    # Call the function that returns the user's current emotion
+    if flag:
+        furhat.say(text = "How are you feeling right now?", blocking=True)
+        result = furhat.listen()
+        texts = result.__dict__['_message'].split(' ')
+        if any(el in texts for el in ['great','good','super', 'happy']):
+            furhat.say(text = "I am glad to hear that! ", blocking=True)
+        else:
+            furhat.say(text = "I see. I believe attending more of these stress relaxing exercises may bring calmness to your mind.", blocking = True)
+        furhat.say(text = "Now, during the exercise, ")
+    return init_emo
+    # sleep(3)
+
+
+def visualizationResponse(furhat, emotion):
+    if emotion == "angry":
+        furhat.say(text="I saw that you're angry. While in this visualization, acknowledge your anger and visualize letting it go. Picture your serene place absorbing any negative energy.")
+        sleep(3)
+        askForBreak(furhat)
+        return "happy and eventually a calm"
+    
+    elif emotion == "happy":
+        furhat.say(text="I sensed that you're feeling happy! In your visualization, amplify this happiness. Picture your serene place filled with joyful energy.")
+        sleep(3)
+        askForBreak(furhat)
+        return "calm"
+    
+    elif emotion == "sad":
+        furhat.say(text="I notice that you're feeling sad. During this visualization, allow the peaceful setting to envelop you with comfort. Visualize releasing any sadness with each breath.")
+        sleep(3)
+        askForBreak(furhat)
+        return "calm"
+
+    elif emotion == "calm":
+        furhat.say(text="I sensed that you're feeling calm. Use this calmness to deepen your visualization experience. Picture your serene place with heightened clarity and tranquility.")
+        sleep(3)
+        askForBreak(furhat)
+        return "maintain"
+    
+    else:
+        furhat.say(text="I couldn't find an apt word to describe your emotion. Anyway, allow gratitude to be a source of comfort and positivity.")
+        sleep(3)
+        askForBreak(furhat)
+        return "calm"
+
+def askForBreak(furhat):
+    while True:
+        furhat.say(text="Would you like to take a break?", blocking=True)
+        result = furhat.listen()
+        texts = result.__dict__['_message'].split(' ')
+        if "yes" in texts:
+            furhat.say(text="Great! let's take a 10 second break")
+            furhat.gesture(name="CloseEyes")
+            furhat.gesture(body=LOOK_DOWN(speed=1))
+            sleep(10)
+            furhat.gesture(body=LOOK_BACK(speed=1))
+            furhat.gesture(name="OpenEyes")
+            furhat.say(text="Let's continue.")
+            break  # Exit the loop if the user wants a break
+        
+        elif "no" in texts:
+            furhat.say(text="Great! Let's continue.", blocking=True)
+            break  # Exit the loop if the user doesn't want a break
+       
+        else:
+            furhat.say(text="I'm sorry, I didn't get that, can you repeat it?")
 
 # ----- Introduction dialogues & excercises  -----
 def introduction():
@@ -91,7 +202,7 @@ def introduction():
     
     # ----- Start playing the background music -----
     pygame.mixer.init()
-    pygame.mixer.music.load("furhat/backgroundWaves.mp3")
+    pygame.mixer.music.load(DIR_PATH + "furhat/backgroundWaves.mp3")
     pygame.mixer.music.set_volume(0.3)
     pygame.mixer.music.play()
 
@@ -103,49 +214,33 @@ def introduction():
     furhat.gesture(name="OpenEyes")
 
     # ----- Starting Dialogue  -----
-    furhat.say(text="Welcome to today's meditation session.")
-    time.sleep(2)
-    furhat.say(text="My name is Mary, and I will be your guide today. Now let us begin the 1 minute session")
-    time.sleep(2)
-
+    furhat.say(text="Welcome to today's meditation session.",blocking=True)
+    furhat.say(text="My name is Lucia, and I will be your guide today. Now let us begin the 1 minute session")
+    sleep(2)
     # ----- Starting Visualization Exercise  -----
 
     # Furhat conducts the 'exercise' and does tries to detect the user's emotion simultaneously  
-    process1 = multiprocessing.Process(target=capture_and_return_emos(50))
-    process2 = multiprocessing.Process(target=visualizationExercise(furhat))
-
-    process1.start()
-    process2.start()
-
-    process1.join()
-    process2.join()
-
-    response = visualizationResponse(return_detected_emo())
+    initial_emo = return_detected_emo(visualizationExercise(furhat))
+    print(EMO_LIST)
+    emo_after_exercise = return_detected_emo(EMO_LIST)
+    
+    response = visualizationResponse(furhat, emo_after_exercise)
 
     if response=='maintain':
-        furhat.say(text = f"I understand you're feeling {return_detected_emo()}. This is ideal, embrace visualization, and let it guide you towards a maintaining this calm state.")
+        furhat.say(text = f"At the beginning of the exercise, I could see that you were feeling {initial_emo}. As the exercise progressed, I sensed that you're feeling {return_detected_emo(EMO_LIST)}. This is ideal, embrace visualization, and let it guide you towards a maintaining this calm state.",blocking=True)
     else:
-        furhat.say(text = f"I understand you're feeling {return_detected_emo()}. Embrace visualization, and let it guide you towards a {response} state.")
-
-# ----- Conclusion Exercise  -----
+        furhat.say(text = f"At the beginning of the exercise, I could see that you were feeling {initial_emo}. As the exercise progressed, I sensed that you're feeling {return_detected_emo(EMO_LIST)}. Embrace visualization, and let it guide you towards a {response} state.",blocking=True)
+    sleep(2)
+# ----- Conclusion  -----
 def conclusion():
-    furhat.say(text="Now, slowly bring your awareness back to the present moment.")
-    time.sleep(3)
-    furhat.say(text="When you are ready, open your eyes.")
-    time.sleep(3)
-
-    # Custom response depending on the total emotions in the class
-
+    # furhat.say(text="Now, slowly bring your awareness back to the present moment.")
+    # time.sleep(3)
+    # furhat.say(text="When you are ready, open your eyes.")
+    # time.sleep(3)
     furhat.say(text="Thank you for joining me today.")
-    time.sleep(3)
-    furhat.say(text="I hope you feel a sense of calm and peace, and have a wonderful day.")
-    time.sleep(3)
+    furhat.say(text="I hope you feel a sense of calm and peace, and have a wonderful day!")
     
 if __name__=="__main__":
     introduction()
+    conclusion()
 
-# Add pauses to allow time for the user to follow the instructions
-# furhat.pause(duration=10)  # You may need to adjust the duration based on your preference
-
-# Play an audio file (with lipsync automatically added) 
-# furhat.say(url="https://drive.google.com/uc?export=open&id=1c-Re2aUo1mQHaJkxLJd6kTUA0CM-i3A_", lipsync=False)
