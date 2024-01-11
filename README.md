@@ -2,7 +2,7 @@
 Project work done for the course Intelligent Interactive Systems @ Uppsala University for VT2023
 
 To install the required packages run:
-`pip install -r requirements. txt` 
+`pip install -r requirements.txt` 
 
 To run the demo:
 `python scripts/demoScript.py` 
