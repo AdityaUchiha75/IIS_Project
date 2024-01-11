@@ -1,6 +1,8 @@
 # IIS_Project
 Project work done for the course Intelligent Interactive Systems @ Uppsala University for VT2023
 
+The dataset [DiffusionFER]{https://huggingface.co/datasets/FER-Universe/DiffusionFER} was used for development.
+
 To install the required packages run:
 `pip install -r requirements.txt` 
 
