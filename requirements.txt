@@ -66,7 +66,6 @@ jupyter-contrib-nbextensions @ file:///home/conda/feedstock_root/build_artifacts
 jupyter-events==0.8.0
 jupyter-highlight-selected-word @ file:///home/conda/feedstock_root/build_artifacts/jupyter_highlight_selected_word_1695322379939/work
 jupyter-latex-envs @ file:///home/conda/feedstock_root/build_artifacts/jupyter_latex_envs_1614852190293/work
-jupyter-lsp==2.2.0
 jupyter-nbextensions-configurator @ file:///home/conda/feedstock_root/build_artifacts/jupyter_nbextensions_configurator_1670793770953/work
 jupyter-server @ file:///home/conda/feedstock_root/build_artifacts/jupyter_server_1693923066986/work
 jupyter-ui-poll==0.2.2
